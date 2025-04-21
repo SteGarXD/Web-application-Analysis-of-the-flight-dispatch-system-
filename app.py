@@ -225,8 +225,34 @@ elif section == "Дополнительная аналитика":
                 st.plotly_chart(fig, use_container_width=True)
 
             elif chart_key == "heatmap":
-                df_filtered["weekday"] = df_filtered["dep_date"].dt.day_name(locale="Russian")
-                df_filtered["month_name"] = df_filtered["dep_date"].dt.month_name(locale="Russian")
+                weekday_mapping = {
+                    'Monday': 'Понедельник',
+                    'Tuesday': 'Вторник',
+                    'Wednesday': 'Среда',
+                    'Thursday': 'Четверг',
+                    'Friday': 'Пятница',
+                    'Saturday': 'Суббота',
+                    'Sunday': 'Воскресенье'
+                }
+
+                df_filtered["weekday"] = df_filtered["dep_date"].dt.day_name().map(weekday_mapping)
+
+                month_mapping = {
+                    'January': 'Январь',
+                    'February': 'Февраль',
+                    'March': 'Март',
+                    'April': 'Апрель',
+                    'May': 'Май',
+                    'June': 'Июнь',
+                    'July': 'Июль',
+                    'August': 'Август',
+                    'September': 'Сентябрь',
+                    'October': 'Октябрь',
+                    'November': 'Ноябрь',
+                    'December': 'Декабрь'
+                }
+
+                df_filtered["month_name"] = df_filtered["dep_date"].dt.month_name().map(month_mapping)
 
                 pivot = df_filtered.pivot_table(index="weekday", columns="month_name", values="flight_no", aggfunc="count", fill_value=0)
                 pivot = pivot.reindex(["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"])
