@@ -223,3 +223,51 @@ elif section == "Дополнительная аналитика":
                 )
                 fig.update_layout(xaxis_title="Пассажиры на рейс", yaxis_title="Количество рейсов")
                 st.plotly_chart(fig, use_container_width=True)
+
+            elif chart_key == "heatmap":
+                weekday_mapping = {
+                    'Monday': 'Понедельник',
+                    'Tuesday': 'Вторник',
+                    'Wednesday': 'Среда',
+                    'Thursday': 'Четверг',
+                    'Friday': 'Пятница',
+                    'Saturday': 'Суббота',
+                    'Sunday': 'Воскресенье'
+                }
+
+                df_filtered["weekday"] = df_filtered["dep_date"].dt.day_name().map(weekday_mapping)
+
+                month_mapping = {
+                    'January': 'Январь',
+                    'February': 'Февраль',
+                    'March': 'Март',
+                    'April': 'Апрель',
+                    'May': 'Май',
+                    'June': 'Июнь',
+                    'July': 'Июль',
+                    'August': 'Август',
+                    'September': 'Сентябрь',
+                    'October': 'Октябрь',
+                    'November': 'Ноябрь',
+                    'December': 'Декабрь'
+                }
+
+                df_filtered["month_name"] = df_filtered["dep_date"].dt.month_name().map(month_mapping)
+
+                month_order = [
+                    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+                ]
+                df_filtered["month_name"] = pd.Categorical(df_filtered["month_name"], categories=month_order, ordered=True)
+
+                heatmap_data = df_filtered.groupby(["month_name", "weekday"]).size().unstack(fill_value=0)
+
+                fig = px.imshow(
+                    heatmap_data,
+                    labels=dict(x="День недели", y="Месяц", color="Количество рейсов"),
+                    x=heatmap_data.columns,
+                    y=heatmap_data.index,
+                    color_continuous_scale="Blues"
+                )
+                fig.update_layout(title="Тепловая карта активности")
+                st.plotly_chart(fig, use_container_width=True)
