@@ -226,36 +226,53 @@ elif section == "Дополнительная аналитика":
 
             elif chart_key == "heatmap":
                 weekday_mapping = {
-                    'Monday': 'Понедельник',
-                    'Tuesday': 'Вторник',
-                    'Wednesday': 'Среда',
-                    'Thursday': 'Четверг',
-                    'Friday': 'Пятница',
-                    'Saturday': 'Суббота',
-                    'Sunday': 'Воскресенье'
+                    0: 'Понедельник',
+                    1: 'Вторник',
+                    2: 'Среда',
+                    3: 'Четверг',
+                    4: 'Пятница',
+                    5: 'Суббота',
+                    6: 'Воскресенье'
                 }
 
-                df_filtered["weekday"] = df_filtered["dep_date"].dt.day_name().map(weekday_mapping)
+                df_filtered["weekday"] = df_filtered["dep_date"].dt.weekday.map(weekday_mapping)
 
                 month_mapping = {
-                    'January': 'Январь',
-                    'February': 'Февраль',
-                    'March': 'Март',
-                    'April': 'Апрель',
-                    'May': 'Май',
-                    'June': 'Июнь',
-                    'July': 'Июль',
-                    'August': 'Август',
-                    'September': 'Сентябрь',
-                    'October': 'Октябрь',
-                    'November': 'Ноябрь',
-                    'December': 'Декабрь'
+                    1: 'Январь',
+                    2: 'Февраль',
+                    3: 'Март',
+                    4: 'Апрель',
+                    5: 'Май',
+                    6: 'Июнь',
+                    7: 'Июль',
+                    8: 'Август',
+                    9: 'Сентябрь',
+                    10: 'Октябрь',
+                    11: 'Ноябрь',
+                    12: 'Декабрь'
                 }
 
-                df_filtered["month_name"] = df_filtered["dep_date"].dt.month_name().map(month_mapping)
+                df_filtered["month_name"] = df_filtered["dep_date"].dt.month.map(month_mapping)
 
-                pivot = df_filtered.pivot_table(index="weekday", columns="month_name", values="flight_no", aggfunc="count", fill_value=0)
-                pivot = pivot.reindex(["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"])
+                month_order = [
+                    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+                ]
+                df_filtered["month_name"] = pd.Categorical(df_filtered["month_name"], categories=month_order,
+                                                           ordered=True)
+
+                pivot = df_filtered.pivot_table(
+                    index="weekday",
+                    columns="month_name",
+                    values="flight_no",
+                    aggfunc="count",
+                    fill_value=0
+                )
+
+                pivot = pivot.reindex(
+                    ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"])
+
+                pivot = pivot[month_order]
 
                 fig = px.imshow(
                     pivot,
