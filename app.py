@@ -3,6 +3,8 @@ import pandas as pd
 import glob
 import plotly.express as px
 from PIL import Image
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 logo = Image.open('7038fb25-82d5-478f-9b43-a19ac46cb9ed.png')
 
@@ -254,20 +256,17 @@ elif section == "Дополнительная аналитика":
 
                 df_filtered["month_name"] = df_filtered["dep_date"].dt.month_name().map(month_mapping)
 
-                month_order = [
-                    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-                ]
-                df_filtered["month_name"] = pd.Categorical(df_filtered["month_name"], categories=month_order, ordered=True)
+                month_order = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                               "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
+                day_order = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
 
-                heatmap_data = df_filtered.groupby(["month_name", "weekday"]).size().unstack(fill_value=0)
+                heatmap_data = df.groupby(['Месяц', 'День недели']).size().unstack(fill_value=0)
 
-                fig = px.imshow(
-                    heatmap_data,
-                    labels=dict(x="День недели", y="Месяц", color="Количество рейсов"),
-                    x=heatmap_data.columns,
-                    y=heatmap_data.index,
-                    color_continuous_scale="Blues"
-                )
-                fig.update_layout(title="Тепловая карта активности")
-                st.plotly_chart(fig, use_container_width=True)
+                heatmap_data = heatmap_data.reindex(index=month_order, columns=day_order)
+
+                fig, ax = plt.subplots(figsize=(10, 6))
+                sns.heatmap(heatmap_data, cmap="YlOrRd", linewidths=0.5, linecolor='gray', ax=ax)
+                plt.title("Тепловая карта активности по месяцам и дням недели")
+                plt.xlabel("День недели")
+                plt.ylabel("Месяц")
+                st.pyplot(fig)
