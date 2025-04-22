@@ -145,10 +145,10 @@ elif section == "Дополнительная аналитика":
             col1, col2 = st.columns([1, 1])
 
             with col1:
-                sd = st.date_input("Дата начала", value=df["dep_date"].min())
+                sd = st.date_input("Дата начала", value=df["dep_date"].min(), key=f"start_date_{key}")
 
             with col2:
-                ed = st.date_input("Дата окончания", value=df["dep_date"].max())
+                ed = st.date_input("Дата окончания", value=df["dep_date"].max(), key=f"end_date_{key}")
 
             sd = pd.to_datetime(sd)
             ed = pd.to_datetime(ed)
