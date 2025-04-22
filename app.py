@@ -258,26 +258,53 @@ elif section == "Дополнительная аналитика":
 
                 if 'Месяц' not in df.columns or 'День недели' not in df.columns:
                     df['Дата вылета'] = pd.to_datetime(df['Дата вылета'], errors='coerce')
-                    df['Месяц'] = df['Дата вылета'].dt.strftime('%B')
-                    df['День недели'] = df['Дата вылета'].dt.strftime('%A')
+                    df['Месяц'] = df['Дата вылета'].dt.month
+                    df['День недели'] = df['Дата вылета'].dt.dayofweek
+
+                month_map = {
+                    1: 'Январь', 2: 'Февраль', 3: 'Март', 4: 'Апрель',
+                    5: 'Май', 6: 'Июнь', 7: 'Июль', 8: 'Август',
+                    9: 'Сентябрь', 10: 'Октябрь', 11: 'Ноябрь', 12: 'Декабрь'
+                }
+
+                day_map = {
+                    0: 'Понедельник', 1: 'Вторник', 2: 'Среда',
+                    3: 'Четверг', 4: 'Пятница', 5: 'Суббота', 6: 'Воскресенье'
+                }
+
+                df['Месяц'] = df['Месяц'].map(month_map)
+                df['День недели'] = df['День недели'].map(day_map)
 
                 month_order = [
-                    'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'
+                    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
                 ]
                 day_order = [
-                    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+                    'Понедельник', 'Вторник', 'Среда', 'Четверг',
+                    'Пятница', 'Суббота', 'Воскресенье'
                 ]
 
                 df['Месяц'] = pd.Categorical(df['Месяц'], categories=month_order, ordered=True)
                 df['День недели'] = pd.Categorical(df['День недели'], categories=day_order, ordered=True)
 
+                min_date = df['Дата вылета'].min()
+                max_date = df['Дата вылета'].max()
 
-                heatmap_data = df.groupby(['Месяц', 'День недели']).size().unstack(fill_value=0)
+                start_date, end_date = st.date_input(
+                    "Выберите диапазон дат для тепловой карты:",
+                    value=(min_date, max_date),
+                    min_value=min_date,
+                    max_value=max_date
+                )
+
+                filtered_df = df[
+                    (df['Дата вылета'] >= pd.to_datetime(start_date)) & (df['Дата вылета'] <= pd.to_datetime(end_date))]
+
+                heatmap_data = filtered_df.groupby(['Месяц', 'День недели']).size().unstack(fill_value=0)
 
                 st.subheader("🔥 Тепловая карта активности по месяцам и дням недели")
                 fig, ax = plt.subplots(figsize=(12, 6))
-                sns.heatmap(heatmap_data, cmap="YlGnBu", annot=True, fmt="d", linewidths=.5, ax=ax)
+                sns.heatmap(heatmap_data, cmap="YlOrRd", annot=True, fmt="d", linewidths=.5, ax=ax)
                 ax.set_xlabel("День недели")
                 ax.set_ylabel("Месяц")
                 st.pyplot(fig)
