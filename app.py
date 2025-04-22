@@ -134,18 +134,25 @@ if section == "Основные диаграммы":
 
 elif section == "Дополнительная аналитика":
     st.title("Дополнительная аналитика рейсов")
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        sd = st.date_input("Дата начала", value=df["dep_date"].min())
+
+    with col2:
+        ed = st.date_input("Дата окончания", value=df["dep_date"].max())
+
+    sd = pd.to_datetime(sd)
+    ed = pd.to_datetime(ed)
+
+    df_f = df[(df.dep_date >= sd) & (df.dep_date <= ed)]
+
     add = [("Рейсы по месяцам", "flight_no", "flights"), ("Пассажиры по месяцам", "passengers", "passengers"),
            ("Средняя загрузка", "avg_passengers", "avg_passengers"), ("Тепловая карта", "heatmap", "heatmap")]
+
     for title, ylabel, key in add:
         with st.expander(title, expanded=True):
-            sd = st.date_input("Дата начала", value=df["dep_date"].min(), key=f"a_sd_{key}")
-            ed = st.date_input("Дата окончания", value=df["dep_date"].max(), key=f"a_ed_{key}")
-
-            sd = pd.to_datetime(sd)
-            ed = pd.to_datetime(ed)
-
-            df_f = df[(df.dep_date >= sd) & (df.dep_date <= ed)]
-
             if key == "flights":
                 df_f["month"] = df_f.dep_date.dt.to_period("M").astype(str)
                 data = df_f.groupby("month")["flight_no"].nunique().reset_index()
