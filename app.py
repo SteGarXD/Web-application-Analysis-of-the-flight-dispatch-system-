@@ -134,13 +134,18 @@ if section == "Основные диаграммы":
 
 elif section == "Дополнительная аналитика":
     st.title("Дополнительная аналитика рейсов")
-    add = [("Рейсы по месяцам","flight_no","flights"),("Пассажиры по месяцам","passengers","passengers"),
-           ("Средняя загрузка","avg_passengers","avg_passengers"),("Тепловая карта","heatmap","heatmap")]
+    add = [("Рейсы по месяцам", "flight_no", "flights"), ("Пассажиры по месяцам", "passengers", "passengers"),
+           ("Средняя загрузка", "avg_passengers", "avg_passengers"), ("Тепловая карта", "heatmap", "heatmap")]
     for title, ylabel, key in add:
         with st.expander(title, expanded=True):
             sd = st.date_input("Дата начала", value=df["dep_date"].min(), key=f"a_sd_{key}")
             ed = st.date_input("Дата окончания", value=df["dep_date"].max(), key=f"a_ed_{key}")
+
+            sd = pd.to_datetime(sd)
+            ed = pd.to_datetime(ed)
+
             df_f = df[(df.dep_date >= sd) & (df.dep_date <= ed)]
+
             if key == "flights":
                 df_f["month"] = df_f.dep_date.dt.to_period("M").astype(str)
                 data = df_f.groupby("month")["flight_no"].nunique().reset_index()
@@ -157,13 +162,15 @@ elif section == "Дополнительная аналитика":
                 df_f["month_num"] = df_f.dep_date.dt.month
                 df_f["dow"] = df_f.dep_date.dt.dayofweek
                 month_map = {i: m for i, m in enumerate(
-                    ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'], 1)}
+                    ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь',
+                     'Ноябрь', 'Декабрь'], 1)}
                 day_map = {i: d for i, d in enumerate(
                     ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'])}
                 df_f['Месяц'] = df_f.month_num.map(month_map)
                 df_f['День недели'] = df_f.dow.map(day_map)
                 df_f['Месяц'] = pd.Categorical(df_f['Месяц'], categories=list(month_map.values()), ordered=True)
-                df_f['День недели'] = pd.Categorical(df_f['День недели'], categories=list(day_map.values()), ordered=True)
+                df_f['День недели'] = pd.Categorical(df_f['День недели'], categories=list(day_map.values()),
+                                                     ordered=True)
                 heat = df_f.groupby(['Месяц', 'День недели']).size().unstack(fill_value=0)
                 fig, ax = plt.subplots(figsize=(12, 6))
                 sns.heatmap(heat, cmap="YlOrRd", annot=True, fmt="d", linewidths=.5, ax=ax)
