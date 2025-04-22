@@ -135,7 +135,10 @@ elif section == "Дополнительная аналитика":
                 sns.heatmap(heat,cmap="YlOrRd",annot=True,fmt="d",linewidths=.5,ax=ax)
                 ax.set_xlabel("День недели")
                 ax.set_ylabel("Месяц")
-            st.plotly_chart(fig,use_container_width=True) if key!="heatmap" else st.pyplot(fig)
+            if key != "heatmap":
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.pyplot(fig)
 
 elif section == "Прогноз":
     st.title("Прогноз пассажиропотока на 6 месяцев")
