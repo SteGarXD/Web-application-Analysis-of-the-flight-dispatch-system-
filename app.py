@@ -29,8 +29,11 @@ def load_data():
     with zipfile.ZipFile(zip_path, "r") as z:
         z.extractall("data")
     dfs = []
-    for fn in glob.glob("data/*.csv"):
-        df = pd.read_csv(fn, sep=";", encoding="cp1251")
+    for fn in glob.glob("data/**/*.csv", recursive=True):
+        dfs.append(pd.read_csv(fn, sep=";", encoding="cp1251"))
+    if not dfs:
+        st.error("Не найдено ни одного CSV в папке data/")
+        return pd.DataFrame()
         df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
         df["dep_date"] = pd.to_datetime(df["Дата вылета"], dayfirst=True, errors="coerce")
         df["passengers"] = pd.to_numeric(df["Кол-во пасс."], errors="coerce").fillna(0).astype(int)
