@@ -135,24 +135,26 @@ if section == "Основные диаграммы":
 elif section == "Дополнительная аналитика":
     st.title("Дополнительная аналитика рейсов")
 
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        sd = st.date_input("Дата начала", value=df["dep_date"].min())
-
-    with col2:
-        ed = st.date_input("Дата окончания", value=df["dep_date"].max())
-
-    sd = pd.to_datetime(sd)
-    ed = pd.to_datetime(ed)
-
-    df_f = df[(df.dep_date >= sd) & (df.dep_date <= ed)]
-
-    add = [("Рейсы по месяцам", "flight_no", "flights"), ("Пассажиры по месяцам", "passengers", "passengers"),
-           ("Средняя загрузка", "avg_passengers", "avg_passengers"), ("Тепловая карта", "heatmap", "heatmap")]
+    add = [("Рейсы по месяцам", "flight_no", "flights"),
+           ("Пассажиры по месяцам", "passengers", "passengers"),
+           ("Средняя загрузка", "avg_passengers", "avg_passengers"),
+           ("Тепловая карта", "heatmap", "heatmap")]
 
     for title, ylabel, key in add:
         with st.expander(title, expanded=True):
+            col1, col2 = st.columns([1, 1])
+
+            with col1:
+                sd = st.date_input(f"Дата начала для {title}", value=df["dep_date"].min())
+
+            with col2:
+                ed = st.date_input(f"Дата окончания для {title}", value=df["dep_date"].max())
+
+            sd = pd.to_datetime(sd)
+            ed = pd.to_datetime(ed)
+
+            df_f = df[(df.dep_date >= sd) & (df.dep_date <= ed)]
+
             if key == "flights":
                 df_f["month"] = df_f.dep_date.dt.to_period("M").astype(str)
                 data = df_f.groupby("month")["flight_no"].nunique().reset_index()
@@ -183,6 +185,7 @@ elif section == "Дополнительная аналитика":
                 sns.heatmap(heat, cmap="YlOrRd", annot=True, fmt="d", linewidths=.5, ax=ax)
                 ax.set_xlabel("День недели")
                 ax.set_ylabel("Месяц")
+
             if key != "heatmap":
                 st.plotly_chart(fig, use_container_width=True)
             else:
