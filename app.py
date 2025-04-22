@@ -193,29 +193,132 @@ elif section == "Дополнительная аналитика":
 
 elif section == "Прогноз":
     st.title("Прогноз пассажиропотока на 6 месяцев")
+
     hist = df.groupby(df.dep_date.dt.to_period('M'))['passengers'].sum().reset_index()
     hist['ds'] = hist.dep_date.dt.to_timestamp()
     hist['y'] = hist.passengers
+
     m = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
     m.fit(hist[['ds', 'y']])
+
     future = m.make_future_dataframe(periods=6, freq='M')
     forecast = m.predict(future)
+
     fig = plot_plotly(m, forecast)
     st.plotly_chart(fig, use_container_width=True)
 
+    comp_fig = m.plot_components(forecast)
+    st.pyplot(comp_fig)
+
+    st.markdown("**Прогноз на следующие 6 месяцев:**")
+    next6 = forecast[['ds', 'yhat']].tail(6).rename(columns={'ds': 'Месяц', 'yhat': 'Прогноз пассажиров'})
+    st.dataframe(next6.style.format({"Прогноз пассажиров": "{:.0f}"}))
+
+    st.markdown(
+        """
+        **Интерпретация прогноза:**
+        - **Тренд** показывает общее направление изменения пассажиропотока:  
+          – Если линия растёт, спрос на рейсы увеличивается.  
+          – Если падает — возможен спад или сезонный спад.
+        - **Сезонность (годовая)** выявляет повторяющиеся колебания в течение года:  
+          – Пики обычно приходятся на летние месяцы (июнь–август).  
+          – Спады — на зимние месяцы (январь–февраль).
+        - Выделенные **компоненты** помогают понять, какие эффекты (долгосрочный тренд или сезонные флуктуации) доминируют.
+        """
+    )
+
 elif section == "Кластеры":
     st.title("Кластеризация маршрутов по средней загрузке")
+
     agg = df.groupby('flight_no')['passengers'].mean().reset_index()
+
     scaler = StandardScaler()
     X = scaler.fit_transform(agg[['passengers']])
-    agg['cluster'] = KMeans(n_clusters=3, random_state=42).fit_predict(X)
-    fig = px.scatter(agg, x='flight_no', y='passengers', color='cluster',
-                     title="3 кластера по средней загрузке")
+
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    agg['cluster'] = kmeans.fit_predict(X)
+
+    centers = scaler.inverse_transform(kmeans.cluster_centers_).flatten()
+
+    order = centers.argsort()
+    labels = {
+        order[0]: "Низкая загрузка",
+        order[1]: "Средняя загрузка",
+        order[2]: "Высокая загрузка"
+    }
+    agg['cluster_label'] = agg['cluster'].map(labels)
+
+    fig = px.scatter(
+        agg,
+        x='flight_no',
+        y='passengers',
+        color='cluster_label',
+        title="Кластеры маршрутов по средней загрузке",
+        labels={"cluster_label": "Тип кластера"}
+    )
     st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("**Центры кластеров (средняя загрузка пассажиров):**")
+    for i, c in enumerate(centers):
+        st.write(f"- Кластер «{labels[i]}»: {c:.1f} пассажиров в среднем")
+
+    st.markdown(
+        """
+        **Интерпретация кластеров:**
+        - **Низкая загрузка**: маршруты, где в среднем менее {:.0f} пассажиров.
+        - **Средняя загрузка**: маршруты с примерно {:.0f}–{:.0f} пассажирами.
+        - **Высокая загрузка**: маршруты, где более {:.0f} пассажиров.
+
+        Такие группы помогают:
+        1. Выявить маршруты, которые стоит стимулировать (низкая загрузка).
+        2. Отследить «рабочие лошадки» (средняя загрузка).
+        3. Определить сверхпопулярные направления (высокая загрузка).
+        """
+        .format(
+            centers[order[0]],
+            centers[order[0]],
+            centers[order[2]],
+            centers[order[2]]
+        )
+    )
 
 elif section == "Аномалии":
     st.title("Обнаружение аномалий в пассажиропотоке")
-    df_sorted = df.sort_values(by='passengers', ascending=False).reset_index(drop=True)
-    df_sorted = df_sorted[['flight_no', 'dep_date', 'passengers']].head(100)
-    fig = px.scatter(df_sorted, x='dep_date', y='passengers', color='flight_no', title="Аномалии в пассажиропотоке")
+
+    mean_p = df['passengers'].mean()
+    std_p = df['passengers'].std()
+    threshold = mean_p + 3 * std_p
+
+    anomalies = df[df['passengers'] > threshold].sort_values('passengers', ascending=False)
+
+    fig = px.scatter(
+        anomalies,
+        x='dep_date',
+        y='passengers',
+        color='flight_no',
+        title=f"Аномалии (пасслжиров > {threshold:.0f})"
+    )
     st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("**Список аномальных рейсов:**")
+    st.dataframe(
+        anomalies[['flight_no', 'dep_date', 'passengers']]
+        .rename(columns={
+            'flight_no': 'Рейс',
+            'dep_date': 'Дата вылета',
+            'passengers': 'Пассажиров'
+        })
+        .reset_index(drop=True)
+    )
+
+    st.markdown(
+        f"""
+        **Интерпретация аномалий:**
+        - Порог выброса установлен как `среднее ({mean_p:.1f}) + 3×σ ({std_p:.1f}) ≈ {threshold:.0f}` пассажиров.
+        - Рейсы, превысившие этот порог, могут указывать на:
+          1. **Специальные чартерные рейсы** или разовые события (концерты, конференции).
+          2. **Ошибки в данных** (двойная загрузка, дублирование).
+          3. **Резкий всплеск спроса** (экстренные ситуации, эвакуация).
+        - Для более точного детектирования можно подключить модели IsolationForest или LocalOutlierFactor.
+        """
+    )
