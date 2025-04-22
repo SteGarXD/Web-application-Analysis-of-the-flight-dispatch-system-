@@ -10,6 +10,8 @@ from prophet import Prophet
 from prophet.plot import plot_plotly
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
 
 logo = Image.open('7038fb25-82d5-478f-9b43-a19ac46cb9ed.png')
 st.set_page_config(
@@ -289,36 +291,79 @@ elif section == "Аномалии":
     std_p = df['passengers'].std()
     threshold = mean_p + 3 * std_p
 
-    anomalies = df[df['passengers'] > threshold].sort_values('passengers', ascending=False)
+    st.markdown(f"Порог выбросов (mean + 3·std): **{threshold:.0f}** пассажиров")
 
-    fig = px.scatter(
-        anomalies,
-        x='dep_date',
-        y='passengers',
-        color='flight_no',
-        title=f"Аномалии (пасслжиров > {threshold:.0f})"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    X = df[['passengers']].values
 
-    st.markdown("**Список аномальных рейсов:**")
-    st.dataframe(
-        anomalies[['flight_no', 'dep_date', 'passengers']]
-        .rename(columns={
-            'flight_no': 'Рейс',
-            'dep_date': 'Дата вылета',
-            'passengers': 'Пассажиров'
-        })
-        .reset_index(drop=True)
+    df['threshold_anomaly'] = df['passengers'] > threshold
+
+    iso = IsolationForest(
+        contamination=0.01,  # предполагаем, что ~1% точек — аномалии
+        random_state=42
     )
+    df['iso_label'] = iso.fit_predict(X)  # -1 = аномалия, 1 = нормальная точка
+    df['iso_anomaly'] = df['iso_label'] == -1
+
+    lof = LocalOutlierFactor(
+        n_neighbors=20,  # число соседей для оценки плотности
+        contamination=0.01  # доля аномалий
+    )
+    df['lof_label'] = lof.fit_predict(X)  # -1 = аномалия, 1 = нормальная точка
+    df['lof_anomaly'] = df['lof_label'] == -1
+
+    tabs = st.tabs(["Порог", "IsolationForest", "LocalOutlierFactor"])
+    with tabs[0]:
+        anom = df[df['threshold_anomaly']]
+        fig0 = px.scatter(
+            anom, x='dep_date', y='passengers', color='flight_no',
+            title=f"Аномалии по порогу (> {threshold:.0f})"
+        )
+        st.plotly_chart(fig0, use_container_width=True)
+        st.dataframe(
+            anom[['flight_no', 'dep_date', 'passengers']]
+            .rename(columns={'flight_no': 'Рейс', 'dep_date': 'Дата', 'passengers': 'Пассажиров'})
+            .reset_index(drop=True)
+        )
+
+    with tabs[1]:
+        anom_iso = df[df['iso_anomaly']]
+        fig1 = px.scatter(
+            anom_iso, x='dep_date', y='passengers', color='flight_no',
+            title="Аномалии IsolationForest"
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+        st.dataframe(
+            anom_iso[['flight_no', 'dep_date', 'passengers']]
+            .rename(columns={'flight_no': 'Рейс', 'dep_date': 'Дата', 'passengers': 'Пассажиров'})
+            .reset_index(drop=True)
+        )
+
+    with tabs[2]:
+        anom_lof = df[df['lof_anomaly']]
+        fig2 = px.scatter(
+            anom_lof, x='dep_date', y='passengers', color='flight_no',
+            title="Аномалии LocalOutlierFactor"
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+        st.dataframe(
+            anom_lof[['flight_no', 'dep_date', 'passengers']]
+            .rename(columns={'flight_no': 'Рейс', 'dep_date': 'Дата', 'passengers': 'Пассажиров'})
+            .reset_index(drop=True)
+        )
 
     st.markdown(
-        f"""
-        **Интерпретация аномалий:**
-        - Порог выброса установлен как `среднее ({mean_p:.1f}) + 3×σ ({std_p:.1f}) ≈ {threshold:.0f}` пассажиров.
-        - Рейсы, превысившие этот порог, могут указывать на:
-          1. **Специальные чартерные рейсы** или разовые события (концерты, конференции).
-          2. **Ошибки в данных** (двойная загрузка, дублирование).
-          3. **Резкий всплеск спроса** (экстренные ситуации, эвакуация).
-        - Для более точного детектирования можно подключить модели IsolationForest или LocalOutlierFactor.
+        """
+        **Как это работает:**
+        1. **Threshold** — самый простой метод: все записи с пассажирами больше mean+3·std считаются выбросами.
+        2. **IsolationForest** строит лес деревьев, «изолирующих» каждую точку;  
+           • `contamination` задаёт ожидаемую долю аномалий (здесь 1%).  
+           • Метки `-1` = аномалия, `1` = нормальная точка.
+        3. **LocalOutlierFactor** оценивает плотность окрестности каждой точки:  
+           • если точка значительно «реже» своих соседей, она помечается как выброс.  
+           • `n_neighbors` — число соседей для оценки плотности, `contamination` — доля выбросов.
+
+        Вы можете подстроить `contamination` и `n_neighbors` в зависимости от ваших данных:
+        - Увеличить `contamination`, если ожидаете больше выбросов.
+        - Изменить `n_neighbors`, чтобы ориентироваться на более локальные или глобальные аномалии.
         """
     )
