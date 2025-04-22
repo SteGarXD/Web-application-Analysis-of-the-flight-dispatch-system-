@@ -30,17 +30,18 @@ def load_data():
         z.extractall("data")
     dfs = []
     for fn in glob.glob("data/**/*.csv", recursive=True):
-        dfs.append(pd.read_csv(fn, sep=";", encoding="cp1251"))
+        df0 = pd.read_csv(fn, sep=";", encoding="cp1251")
+        df0 = df0.loc[:, ~df0.columns.str.contains("^Unnamed")]
+        df0["passengers"] = pd.to_numeric(df0["Кол-во пасс."], errors="coerce").fillna(0).astype(int)
+        df0["contract_short"] = df0["№ договора"].fillna("Без договора").str.extract(r'([^\\s]+)').fillna("Без договора")
+        df0 = df0.rename(columns={"Код а/к": "airline", "Код а/п": "airport", "Номер рейса": "flight_no"})
+        dfs.append(df0)
     if not dfs:
         st.error("Не найдено ни одного CSV в папке data/")
         return pd.DataFrame()
-        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
-        df["dep_date"] = pd.to_datetime(df["Дата вылета"], dayfirst=True, errors="coerce")
-        df["passengers"] = pd.to_numeric(df["Кол-во пасс."], errors="coerce").fillna(0).astype(int)
-        df["contract_short"] = df["№ договора"].fillna("Без договора").str.extract(r'([^\\s]+)').fillna("Без договора")
-        df = df.rename(columns={"Код а/к": "airline", "Код а/п": "airport", "Номер рейса": "flight_no"})
-        dfs.append(df)
-    return pd.concat(dfs, ignore_index=True)
+    df_all = pd.concat(dfs, ignore_index=True)
+    df_all["dep_date"] = pd.to_datetime(df_all["Дата вылета"], dayfirst=True, errors="coerce")
+    return df_all
 
 df = load_data()
 
