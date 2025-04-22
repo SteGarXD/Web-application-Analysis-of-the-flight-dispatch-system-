@@ -256,17 +256,28 @@ elif section == "Дополнительная аналитика":
 
                 df_filtered["month_name"] = df_filtered["dep_date"].dt.month_name().map(month_mapping)
 
-                month_order = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-                               "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
-                day_order = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+                if 'Месяц' not in df.columns or 'День недели' not in df.columns:
+                    df['Дата вылета'] = pd.to_datetime(df['Дата вылета'], errors='coerce')
+                    df['Месяц'] = df['Дата вылета'].dt.strftime('%B')
+                    df['День недели'] = df['Дата вылета'].dt.strftime('%A')
+
+                month_order = [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ]
+                day_order = [
+                    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+                ]
+
+                df['Месяц'] = pd.Categorical(df['Месяц'], categories=month_order, ordered=True)
+                df['День недели'] = pd.Categorical(df['День недели'], categories=day_order, ordered=True)
+
 
                 heatmap_data = df.groupby(['Месяц', 'День недели']).size().unstack(fill_value=0)
 
-                heatmap_data = heatmap_data.reindex(index=month_order, columns=day_order)
-
-                fig, ax = plt.subplots(figsize=(10, 6))
-                sns.heatmap(heatmap_data, cmap="YlOrRd", linewidths=0.5, linecolor='gray', ax=ax)
-                plt.title("Тепловая карта активности по месяцам и дням недели")
-                plt.xlabel("День недели")
-                plt.ylabel("Месяц")
+                st.subheader("🔥 Тепловая карта активности по месяцам и дням недели")
+                fig, ax = plt.subplots(figsize=(12, 6))
+                sns.heatmap(heatmap_data, cmap="YlGnBu", annot=True, fmt="d", linewidths=.5, ax=ax)
+                ax.set_xlabel("День недели")
+                ax.set_ylabel("Месяц")
                 st.pyplot(fig)
