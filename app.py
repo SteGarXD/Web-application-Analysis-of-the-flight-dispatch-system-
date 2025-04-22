@@ -5,6 +5,8 @@ import plotly.express as px
 from PIL import Image
 import seaborn as sns
 import matplotlib.pyplot as plt
+import zipfile, urllib.request, glob, pandas as pd
+from pathlib import Path
 
 logo = Image.open('7038fb25-82d5-478f-9b43-a19ac46cb9ed.png')
 
@@ -16,17 +18,14 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-    csv_files = glob.glob("W&&B_Libra-Particularized.*.csv")
+    url = "https://drive.google.com/uc?id=1kXz-DCE2jgKuAfyvlAtri0fOYvRdz1J_&export=download"
+    zip_path = "data.zip"
+    urllib.request.urlretrieve(url, zip_path)
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extractall("data")
     dfs = []
-    for fn in csv_files:
-        df = pd.read_csv(fn, sep=";", encoding="cp1251")
-        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
-        df["dep_date"] = pd.to_datetime(df["Дата вылета"], dayfirst=True, errors="coerce")
-        df["passengers"] = pd.to_numeric(df["Кол-во пасс."], errors="coerce").fillna(0).astype(int)
-        df["contract_short"] = df["№ договора"].fillna("Без договора").str.extract(r'([^\\s]+)')
-        df["contract_short"] = df["contract_short"].fillna("Без договора")
-        df = df.rename(columns={"Код а/к": "airline", "Код а/п": "airport", "Номер рейса": "flight_no"})
-        dfs.append(df)
+    for fn in glob.glob("data/*.csv"):
+        dfs.append(pd.read_csv(fn, sep=";", encoding="cp1251"))
     return pd.concat(dfs, ignore_index=True)
 
 df = load_data()
