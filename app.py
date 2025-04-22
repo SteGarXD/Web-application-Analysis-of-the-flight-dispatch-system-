@@ -94,7 +94,7 @@ if section == "Основные диаграммы":
         st.subheader(t)
         sd = st.date_input("Дата начала", value=df["dep_date"].min(), key=f"sd{i}")
         ed = st.date_input("Дата окончания", value=df["dep_date"].max(), key=f"ed{i}")
-        mask = (df.dep_date>=sd)&(df.dep_date<=ed)
+        mask = (df.dep_date >= pd.to_datetime(sd)) & (df.dep_date <= pd.to_datetime(ed))
         st.plotly_chart(render_chart(df.loc[mask],col,t,kind=k,showlegend=(k=="pie")), use_container_width=True)
 
 elif section == "Дополнительная аналитика":
@@ -105,7 +105,7 @@ elif section == "Дополнительная аналитика":
         with st.expander(title, expanded=True):
             sd = st.date_input("Дата начала", value=df["dep_date"].min(), key=f"a_sd_{key}")
             ed = st.date_input("Дата окончания", value=df["dep_date"].max(), key=f"a_ed_{key}")
-            df_f = df[(df.dep_date>=sd)&(df.dep_date<=ed)]
+            df_f = df[(df.dep_date >= pd.to_datetime(sd)) & (df.dep_date <= pd.to_datetime(ed))]
             if key=="flights":
                 df_f["month"] = df_f.dep_date.dt.to_period("M").astype(str)
                 data = df_f.groupby("month")["flight_no"].nunique().reset_index()
