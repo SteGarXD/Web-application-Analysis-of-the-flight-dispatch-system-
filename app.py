@@ -104,6 +104,7 @@ def render_chart(df_filt, group_col, chart_title, kind="bar", showlegend=False):
     chart.update_layout(title=chart_title, xaxis_tickformat=",", xaxis_title=None, yaxis_title=None,
                         margin=dict(t=50, l=50, r=50, b=50), hovermode="closest",
                         showlegend=showlegend, font=dict(family="Arial", size=14, color="black"))
+
     return chart
 
 section = st.sidebar.radio(
@@ -203,7 +204,15 @@ elif section == "Прогноз":
     m = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
     m.fit(hist[['ds', 'y']])
 
+    hist['cap'] = hist['y'].max() * 1.2  # задаём верхнюю границу
+    hist['floor'] = 0
+
+    m = Prophet(growth='logistic', yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
+    m.fit(hist[['ds', 'y', 'cap', 'floor']])
+
     future = m.make_future_dataframe(periods=6, freq='M')
+    future['cap'] = hist['cap'].iloc[-1]
+    future['floor'] = 0
     forecast = m.predict(future)
 
     fig = plot_plotly(m, forecast)
