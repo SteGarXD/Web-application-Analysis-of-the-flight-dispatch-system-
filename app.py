@@ -13,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 
-logo = Image.open('7038fb25-82d5-478f-9b43-a19ac46cb9ed.png')
+logo = Image.open('logo.png')
 st.set_page_config(
     page_title="Анализ данных системы отправки рейсов",
     page_icon=logo,
