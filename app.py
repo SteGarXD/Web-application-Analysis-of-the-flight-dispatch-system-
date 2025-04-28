@@ -213,9 +213,16 @@ elif section == "Прогноз":
     st.pyplot(comp_fig)
 
     st.markdown("**Прогноз на следующие 6 месяцев:**")
-    next6 = forecast[['ds', 'yhat']].tail(6).rename(columns={'ds': 'Месяц', 'yhat': 'Прогноз пассажиров'})
-    st.dataframe(next6.style.format({"Прогноз пассажиров": "{:.0f}"}))
-
+    next6 = (forecast[["ds", "yhat"]]
+             .tail(6)
+             .rename(columns={"ds": "Месяц", "yhat": "Прогноз пассажиров"})
+             )
+    next6["Прогноз пассажиров"] = (
+        next6["Прогноз пассажиров"]
+        .clip(lower=0)
+        .round(0)
+        .astype(int)
+    )
     st.markdown(
         """
         **Интерпретация прогноза:**
