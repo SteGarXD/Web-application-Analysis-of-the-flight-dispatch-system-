@@ -214,15 +214,19 @@ elif section == "Прогноз":
 
     st.markdown("**Прогноз на следующие 6 месяцев:**")
 
-    # Таблица прогноза
-    next6 = forecast[["ds", "yhat"]].tail(6).rename(
-        columns={"ds": "Месяц", "yhat": "Прогноз пассажиров"}
+    next6 = (forecast[["ds", "yhat"]]
+             .tail(6)
+             .rename(columns={"ds": "Месяц", "yhat": "Прогноз пассажиров"})
+             )
+
+    next6["Прогноз пассажиров"] = (
+        next6["Прогноз пассажиров"]
+        .clip(lower=0)
+        .round(0)
+        .astype(int)
     )
-    # Округление и формат
-    next6["Прогноз пассажиров"] = next6["Прогноз пассажиров"].clip(lower=0).round(0).astype(int)
-    st.markdown("**Прогноз по месяцам (неотрицательный):**")
     st.dataframe(next6.set_index("Месяц"))
-    
+
     st.markdown(
         """
         **Интерпретация прогноза:**
